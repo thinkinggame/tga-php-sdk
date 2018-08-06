@@ -1,5 +1,5 @@
 {
-  "name": "/ta-php-sdk",
+  "name": "thinkinggame/ta-php-sdk",
   "type": "library",
   "homepage": "http://www.thinkingdata.cn",
   "description": "PHP SDK for thinkingdata Analytics",
