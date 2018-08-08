@@ -9,6 +9,8 @@ define('SDK_VERSION', '1.0.0');
 //Exception
 class ThinkingDataException extends \Exception {
 }
+class ThinkingDataNetWorkException extends \Exception {
+}
 //ThinkingDataAnalytics
 class ThinkingDataAnalytics{
     private $_consumer;
@@ -21,21 +23,72 @@ class ThinkingDataAnalytics{
         $this->_consumer = $consumer;
         $this->clear_public_properties();
     }
+    /**
+     *
+     * @param string $distinct_id
+     * @param string $account_id
+     * @param array $properties
+     * @return boolean
+     * @throws Exception 数据传输，或者写文件失败
+     * */
     public function user_set($distinct_id,$account_id,$properties = array()){
-        $this->_add($distinct_id,$account_id,'user_set',null,$properties);
+        return $this->_add($distinct_id,$account_id,'user_set',null,$properties);
     }
+    /**
+     *
+     * @param string $distinct_id
+     * @param string $account_id
+     * @param array $properties
+     * @return boolean
+     * @throws Exception 数据传输，或者写文件失败
+     * */
     public function user_setOnce($distinct_id,$account_id,$properties = array()){
-        $this->_add($distinct_id,$account_id,'user_setOnce',null,$properties);
+        return $this->_add($distinct_id,$account_id,'user_setOnce',null,$properties);
     }
+    /**
+     *
+     * @param string $distinct_id
+     * @param string $account_id
+     * @param array $properties
+     * @return boolean
+     * @throws Exception 数据传输，或者写文件失败
+     * */
     public function user_add($distinct_id,$account_id,$properties = array()){
-        $this->_add($distinct_id,$account_id,'user_add',null,$properties);
+        return $this->_add($distinct_id,$account_id,'user_add',null,$properties);
     }
+    /**
+     *
+     * @param string $distinct_id
+     * @param string $account_id
+     * @param array $properties
+     * @return boolean
+     * @throws Exception 数据传输，或者写文件失败
+     * */
     public function user_del($distinct_id,$account_id,$properties = array()){
-        $this->_add($distinct_id,$account_id,'user_del',null,$properties);
+        return $this->_add($distinct_id,$account_id,'user_del',null,$properties);
     }
+    /**
+     *
+     * @param string $distinct_id
+     * @param string $account_id
+     * @param string $event_name
+     * @param array $properties
+     * @return boolean
+     * @throws Exception 数据传输，或者写文件失败
+     * */
     public function track($distinct_id,$account_id,$event_name,$properties = array()){
-        $this->_add($distinct_id,$account_id,'track',$event_name,$properties);
+        return $this->_add($distinct_id,$account_id,'track',$event_name,$properties);
     }
+    /**
+     *
+     * @param string $distinct_id
+     * @param string $account_id
+     * @param string $type
+     * @param string $event_name
+     * @param array $properties
+     * @return boolean
+     * @throws Exception 数据传输，或者写文件失败
+     * */
     private function _add($distinct_id,$account_id,$type,$event_name,$properties){
         $event = array();
         if(!$distinct_id && !$account_id){
@@ -54,8 +107,6 @@ class ThinkingDataAnalytics{
             $properties = array_merge($properties,$this->_public_properties);
         }
 
-
-
         $event['#type'] = $type;
         $event['#ip'] = $this->_extract_ip($properties);
         $event['#time'] = $this->_extract_user_time($properties);
@@ -64,9 +115,7 @@ class ThinkingDataAnalytics{
         $this->_assert_properties($type,$properties);
 
         $event['properties'] = $properties;
-        $this->_consumer->send(json_encode($event));
-        echo json_encode($event).PHP_EOL;
-
+        return $this->_consumer->send(json_encode($event));
     }
     private function _assert_properties($type,$properties){
         // 检查 properties
@@ -119,6 +168,10 @@ class ThinkingDataAnalytics{
 //                $properties = new \ArrayObject();
 //            }
     }
+    /**
+     * @return datetime : Y-m-d h:i:s
+     *
+     **/
     public function getDatetime(){
         return date('Y-m-d h:i:s',time());
     }
@@ -139,7 +192,9 @@ class ThinkingDataAnalytics{
         return '';
     }
 
-
+    /**
+     * 清理公共属性
+     **/
     public function clear_public_properties() {
         $this->_public_properties = array(
             '#lib' => 'tga_php_sdk',
@@ -154,9 +209,15 @@ class ThinkingDataAnalytics{
     public function register_public_properties($super_properties) {
         $this->_public_properties = array_merge($this->_public_properties, $super_properties);
     }
+    /**
+     * 立即刷新
+     */
     public function flush(){
         $this->_consumer->flush();
     }
+    /**
+     *关闭sdk接口
+     */
     public function close(){
         $this->_consumer->close();
     }
@@ -187,6 +248,10 @@ class FileConsumer extends AbstractConsumer {
     private $file_handler;
     private $file_name;
     private $file_directory;
+    /**
+     * 实例化一个fileconsume对象
+     * @param $file_directory 文件保存目录
+     **/
     function __construct($file_directory='.')
     {
         $this->file_directory = $file_directory;
@@ -226,6 +291,13 @@ class BatchConsumer extends AbstractConsumer{
     private $_buffers;
     private $_max_size;
     private $_request_timeout;
+    /**
+     * 实例化一个BatchConsumer对象
+     * @param $server_url 服务端接口url
+     * @param $appid 项目appid
+     * @param $max_size 最大的flush值，默认为50
+     * @param $request_timeout http的timeout，默认1000s
+     */
     function __construct($server_url,$appid,$max_size=50,$request_timeout=1000)
     {
         $this->_buffers = array();
@@ -242,7 +314,6 @@ class BatchConsumer extends AbstractConsumer{
             return $this->flush();
         }
         return true;
-
     }
 
     public function flush()
@@ -253,49 +324,45 @@ class BatchConsumer extends AbstractConsumer{
         }
         return $ret;
     }
-    private function _do_request($message_array){
-        $ch = curl_init($this->_url);
-
-        //参数设置
-        curl_setopt($ch,CURLOPT_POST,1);
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch,CURLOPT_CONNECTTIMEOUT,6000);
-        curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
-        curl_setopt($ch,CURLOPT_TIMEOUT,$this->_request_timeout);
-        //传输的数据
-        $data = $this->_encode_msg_list($message_array);
-        curl_setopt($ch,CURLOPT_POSTFIELDS,$data);
-
-        //headers
-        curl_setopt($ch,CURLOPT_HTTPHEADER,array("User-Agent:tga-0.1.0-php","appid:".$this->_appid,"compress:gzip"));
-
-        //发送请求
-        $result = curl_exec($ch);
-        //解析返回值
-        $json = json_decode($result,true);
-        curl_close($ch);
-        if ($json['code'] != 0) {
-            return false;
-        } else {
-            return true;
-        }
-    }
-    private function _encode_msg_list($msg_list) {
-        return base64_encode($this->_gzip_string("[" . implode(",", $msg_list) . "]"));
-    }
-    /**
-     * GZIP 压缩一个字符串
-     *
-     * @param string $data
-     * @return string
-     */
-    private function _gzip_string($data) {
-        return gzencode($data);
-    }
-
     public function close()
     {
         return $this->flush();
+    }
+    private function _do_request($message_array){
+
+        try{
+            $ch = curl_init($this->_url);
+            //参数设置
+            curl_setopt($ch,CURLOPT_POST,1);
+            curl_setopt($ch, CURLOPT_HEADER, 0);
+            curl_setopt($ch,CURLOPT_CONNECTTIMEOUT,6000);
+            curl_setopt($ch,CURLOPT_RETURNTRANSFER,1);
+            curl_setopt($ch,CURLOPT_TIMEOUT,$this->_request_timeout);
+
+            //传输的数据
+            $data = base64_encode(gzencode("[" . implode(",", $message_array) . "]"));
+
+            curl_setopt($ch,CURLOPT_POSTFIELDS,$data);
+
+            //headers
+            curl_setopt($ch,CURLOPT_HTTPHEADER,array("User-Agent:ta-php-sdk","appid:".$this->_appid,"compress:gzip",'Content-Type: application/json'));
+
+            //发送请求
+            $result = curl_exec($ch);
+
+            //解析返回值
+            $json = json_decode($result,true);
+
+            $curl_info= curl_getinfo($ch);
+
+            curl_close($ch);
+            if(($curl_info['http_code'] == 200) && ($json['code'] == 0)){
+                return true;
+            }
+            throw new ThinkingDataNetWorkException("传输数据失败，请检查接收的url或appid");
+        }  catch (Exception $e){
+            throw $e;
+        }
     }
 }
 ?>
