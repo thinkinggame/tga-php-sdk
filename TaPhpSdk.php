@@ -5,7 +5,7 @@
  * Date: 2018/8/2
  * Time: 17:14
  */
-define('SDK_VERSION', '1.0.0');
+define('SDK_VERSION', '1.0.1');
 //Exception
 class ThinkingDataException extends \Exception {
 }
@@ -128,8 +128,8 @@ class ThinkingDataAnalytics{
                 if (!is_string($key)) {
                     throw new ThinkingDataException("property key must be a str. [key=$key]");
                 }
-                if (strlen($key) > 255) {
-                    throw new ThinkingDataException("the max length of property key is 256. [key=$key]");
+                if (strlen($key) > 50) {
+                    throw new ThinkingDataException("the max length of property key is 50. [key=$key]");
                 }
                 if (!preg_match($name_pattern, $key)) {
                     throw new ThinkingDataException("property key must be a valid variable name. [key='$key']]");
