@@ -5,7 +5,7 @@
  * Date: 2018/8/2
  * Time: 17:14
  */
-define('SDK_VERSION', '1.0.1');
+define('SDK_VERSION', '1.0.2');
 //Exception
 class ThinkingDataException extends \Exception {
 }
@@ -91,6 +91,9 @@ class ThinkingDataAnalytics{
      * */
     private function _add($distinct_id,$account_id,$type,$event_name,$properties){
         $event = array();
+        if(!is_null($event_name) && !is_string($event_name)){
+            throw new ThinkingDataException("event name must be a str.");
+        }
         if(!$distinct_id && !$account_id){
             throw new ThinkingDataException("account_id 和 distinct_id 不能同时为空");
         }
@@ -106,14 +109,12 @@ class ThinkingDataAnalytics{
         if($type == 'track'){
             $properties = array_merge($properties,$this->_public_properties);
         }
-
         $event['#type'] = $type;
         $event['#ip'] = $this->_extract_ip($properties);
         $event['#time'] = $this->_extract_user_time($properties);
 
         //检查properties
         $this->_assert_properties($type,$properties);
-
         $event['properties'] = $properties;
         return $this->_consumer->send(json_encode($event));
     }
@@ -173,7 +174,7 @@ class ThinkingDataAnalytics{
      *
      **/
     public function getDatetime(){
-        return date('Y-m-d h:i:s',time());
+        return  date('Y-m-d H:i:s',time());
     }
     private function _extract_user_time(&$properties = array()) {
         if (array_key_exists('#time', $properties)) {
@@ -318,7 +319,11 @@ class BatchConsumer extends AbstractConsumer{
 
     public function flush()
     {
-        $ret = $this->_do_request($this->_buffers);
+         if (empty($this->_buffers)) {
+            $ret = false;
+        } else {
+             $ret = $this->_do_request($this->_buffers);
+         }
         if ($ret) {
             $this->_buffers = array();
         }
@@ -347,6 +352,11 @@ class BatchConsumer extends AbstractConsumer{
             //headers
             curl_setopt($ch,CURLOPT_HTTPHEADER,array("User-Agent:ta-php-sdk","appid:".$this->_appid,"compress:gzip",'Content-Type: application/json'));
 
+            //https
+            $pos = strpos($this->_url, "https");
+            if ($pos === 0) {
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            }
             //发送请求
             $result = curl_exec($ch);
 
